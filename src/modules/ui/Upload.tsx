@@ -1,17 +1,24 @@
 import { ChangeEvent, useRef } from 'react';
-import { Button } from '../components';
+import { Button } from '../../components';
+import { useContextProvider } from '../../context';
 
 export const Upload = () => {
   const inputRef = useRef<HTMLInputElement>(null);
+  const { onSetImage } = useContextProvider();
 
   const onChange = ({ target: { files } }: ChangeEvent<HTMLInputElement>) => {
     if (files) {
       const arrayFiles = Array.from(files);
+
       arrayFiles.forEach((file) => {
         const reader = new FileReader();
 
         reader.onload = (e: ProgressEvent<FileReader>) => {
-          console.log('finished');
+          onSetImage({
+            name: file.name,
+            size: file.size,
+            image: reader.result,
+          });
         };
 
         reader.readAsDataURL(file);
@@ -20,12 +27,13 @@ export const Upload = () => {
   };
 
   return (
-    <div>
+    <div className='pt-32'>
       <input
         type='file'
         ref={inputRef}
         onChange={onChange}
         className='hidden'
+        multiple
       />
       <div className='flex justify-end gap-2'>
         <Button
