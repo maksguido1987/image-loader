@@ -1,6 +1,7 @@
 import { ChangeEvent, useRef } from 'react';
 import { Button } from '../../components';
 import { useContextProvider } from '../../context';
+import uuid from 'react-uuid';
 
 export const Upload = () => {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -15,6 +16,7 @@ export const Upload = () => {
 
         reader.onload = (e: ProgressEvent<FileReader>) => {
           onSetImage({
+            id: uuid(),
             name: file.name,
             size: file.size,
             image: reader.result,
@@ -27,7 +29,7 @@ export const Upload = () => {
   };
 
   return (
-    <div className='pt-32'>
+    <div className=''>
       <input
         type='file'
         ref={inputRef}

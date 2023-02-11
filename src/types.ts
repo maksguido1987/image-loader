@@ -1,4 +1,5 @@
 export interface IImage {
+  id: string;
   name: string;
   size: number;
   image: string | ArrayBuffer | null;
