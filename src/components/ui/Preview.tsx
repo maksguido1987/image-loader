@@ -19,10 +19,10 @@ export const Preview = (props: Props) => {
               className='border rounded-md p-1 flex flex-col relative shadow-md min-h-[200px]'
               key={Math.random()}
             >
-              {image.image && (
+              {image.url && (
                 <div className='flex-1 rounded-md'>
                   <img
-                    src={image.image as string}
+                    src={image.url as string}
                     className='object-cover h-full rounded-md'
                     alt={image.name}
                   />

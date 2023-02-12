@@ -1,11 +1,47 @@
-import { ChangeEvent, useRef } from 'react';
+import { ChangeEvent, useEffect, useRef } from 'react';
 import { Button } from '../../components';
 import { useContextProvider } from '../../context';
 import uuid from 'react-uuid';
+import { initializeApp } from 'firebase/app';
+import {
+  getDownloadURL,
+  getMetadata,
+  getStorage,
+  listAll,
+  ref,
+  uploadBytesResumable,
+} from 'firebase/storage';
+import { firebaseConfig } from '../../config';
+import { IImage } from '../../types';
+
+const app = initializeApp(firebaseConfig);
+const storage = getStorage(app);
 
 export const Upload = () => {
   const inputRef = useRef<HTMLInputElement>(null);
-  const { onSetImage } = useContextProvider();
+  const { images, setImage } = useContextProvider();
+
+  const getUploadedImages = async () => {
+    const listRef = ref(storage, 'images/');
+    const { items } = await listAll(listRef);
+    let currentImages: IImage[] = [];
+
+    for (const itemRef of items) {
+      const url = await getDownloadURL(itemRef);
+      const metaData = await getMetadata(itemRef);
+
+      currentImages.push({
+        name: metaData.name,
+        size: metaData.size,
+        url: url,
+        file: null,
+        ref: itemRef,
+        id: metaData.customMetadata?.id || '',
+      });
+    }
+
+    setImage(currentImages);
+  };
 
   const onChange = ({ target: { files } }: ChangeEvent<HTMLInputElement>) => {
     if (files) {
@@ -15,11 +51,17 @@ export const Upload = () => {
         const reader = new FileReader();
 
         reader.onload = (e: ProgressEvent<FileReader>) => {
-          onSetImage({
-            id: uuid(),
-            name: file.name,
-            size: file.size,
-            image: reader.result,
+          setImage((prev) => {
+            return [
+              ...prev,
+              {
+                id: uuid(),
+                name: file.name,
+                size: file.size,
+                url: reader.result as string,
+                file,
+              },
+            ];
           });
         };
 
@@ -27,6 +69,50 @@ export const Upload = () => {
       });
     }
   };
+
+  const onUpload = () => {
+    images.forEach((image) => {
+      const storageRef = ref(storage, 'images/' + image.name);
+      const uploadTask = uploadBytesResumable(storageRef, image.file!, {
+        customMetadata: { id: image.id },
+      });
+
+      uploadTask.on(
+        'state_changed',
+        (snapshot) => {
+          setImage((prev) => {
+            return prev.map((_image) => {
+              let temp: IImage | undefined;
+
+              /** Если id равны, добавляем количество байтов, которые были успешно загружены на данный момент */
+              if (_image.id === image.id) {
+                temp = {
+                  ..._image,
+                  loaded: snapshot.bytesTransferred,
+                };
+              }
+
+              /** + если === общему количеству байтов, которые должны быть загружены */
+              if (
+                temp &&
+                _image.id === image.id &&
+                snapshot.bytesTransferred === snapshot.totalBytes
+              ) {
+                temp = { ...temp, ref: storageRef };
+              }
+
+              return temp || _image;
+            });
+          });
+        },
+        (error) => console.log(error)
+      );
+    });
+  };
+
+  useEffect(() => {
+    getUploadedImages();
+  }, []);
 
   return (
     <div className=''>
@@ -45,6 +131,7 @@ export const Upload = () => {
         />
         <Button
           className='text-white bg-green-700 hover:bg-green-800'
+          onClick={onUpload}
           text='Загрузить'
         />
       </div>

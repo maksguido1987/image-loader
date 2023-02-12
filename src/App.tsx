@@ -7,18 +7,14 @@ import { IImage } from './types';
 function App() {
   const [images, setImage] = useState<IImage[]>([]);
 
-  const onSetImage = (image: IImage) => {
-    setImage((prev) => {
-      return [...prev, image];
-    });
-  };
-
   const onDeleteImage = (id: string) => {
     setImage(images.filter((item) => item.id !== id));
   };
 
+  console.log(images);
+
   return (
-    <ContextProvider value={{ images, onSetImage }}>
+    <ContextProvider value={{ images, setImage }}>
       <div className='w-full max-w-3xl mx-auto px-2'>
         <div className='flex gap-2 pt-32 pb-5'>
           <ProgressBar percentage={55} />
