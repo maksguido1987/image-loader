@@ -7,7 +7,7 @@ export const ProgressBar = (props: Props) => {
 
   return (
     <div className='flex-1'>
-      <span className='font-semibold'>{percentage}%</span>
+      <span className='font-semibold'>{Math.floor(percentage)}%</span>
       <div className='border border-green-500 h-2.5 rounded-full'>
         <div
           style={{ width: `${String(percentage)}%` }}

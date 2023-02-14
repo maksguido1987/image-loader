@@ -21,9 +21,13 @@ export const Upload = () => {
   const inputRef = useRef<HTMLInputElement>(null);
   const { images, setImage } = useContextProvider();
 
+  /** Загрузка картинок с облака */
   const getUploadedImages = async () => {
+    /** Путь к картинкам в облаке */
     const listRef = ref(storage, 'images/');
+    /** Все картинки */
     const { items } = await listAll(listRef);
+
     let currentImages: IImage[] = [];
 
     for (const itemRef of items) {
@@ -43,6 +47,7 @@ export const Upload = () => {
     setImage(currentImages);
   };
 
+  /** Загрузка всех картинок локально */
   const onChange = ({ target: { files } }: ChangeEvent<HTMLInputElement>) => {
     if (files) {
       const arrayFiles = Array.from(files);
@@ -70,45 +75,52 @@ export const Upload = () => {
     }
   };
 
+  /** Загрузка в облако */
   const onUpload = () => {
     images.forEach((image) => {
-      const storageRef = ref(storage, 'images/' + image.name);
-      const uploadTask = uploadBytesResumable(storageRef, image.file!, {
-        customMetadata: { id: image.id },
-      });
+      /** Если нету ref, значит картинка новая. Обрабатываем */
+      if (!image.ref) {
+        /** Создаем ссылку на картинку */
+        const storageRef = ref(storage, 'images/' + image.name);
+        const uploadTask = uploadBytesResumable(storageRef, image.file!, {
+          customMetadata: { id: image.id },
+        });
 
-      uploadTask.on(
-        'state_changed',
-        (snapshot) => {
-          setImage((prev) => {
-            return prev.map((_image) => {
-              let temp: IImage | undefined;
+        uploadTask.on(
+          'state_changed',
+          (snapshot) => {
+            setImage((prev) => {
+              return prev.map((_image) => {
+                let temp: IImage | undefined;
 
-              /** Если id равны, добавляем количество байтов, которые были успешно загружены на данный момент */
-              if (_image.id === image.id) {
-                temp = {
-                  ..._image,
-                  loaded: snapshot.bytesTransferred,
-                };
-              }
+                /** Если id равны, добавляем количество байтов, которые были успешно загружены на данный момент */
+                if (_image.id === image.id) {
+                  temp = {
+                    ..._image,
+                    loaded: snapshot.bytesTransferred,
+                  };
+                }
 
-              /** + если === общему количеству байтов, которые должны быть загружены */
-              if (
-                temp &&
-                _image.id === image.id &&
-                snapshot.bytesTransferred === snapshot.totalBytes
-              ) {
-                temp = { ...temp, ref: storageRef };
-              }
+                /** + если === общему количеству байтов, которые должны быть загружены */
+                if (
+                  temp &&
+                  _image.id === image.id &&
+                  snapshot.bytesTransferred === snapshot.totalBytes
+                ) {
+                  temp = { ...temp, ref: storageRef };
+                }
 
-              return temp || _image;
+                return temp || _image;
+              });
             });
-          });
-        },
-        (error) => console.log(error)
-      );
+          },
+          (error) => console.log(error)
+        );
+      }
     });
   };
+
+  // console.log(getPercentage());
 
   useEffect(() => {
     getUploadedImages();
